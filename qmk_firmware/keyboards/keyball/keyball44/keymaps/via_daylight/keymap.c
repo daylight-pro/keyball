@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include QMK_KEYBOARD_H
-
 #include "quantum.h"
 #define SYM_SPC LT(1, KC_SPC)
 
@@ -59,58 +58,6 @@ layer_state_t layer_state_set_user(layer_state_t state)
   // Auto enable scroll mode when the highest layer is 3
   keyball_set_scroll_mode(get_highest_layer(state) == 3);
   return state;
-}
-
-enum key_state
-{
-  RELEASED,
-  PRESSED,
-  HOLDEN
-};
-
-void register_space(void)
-{
-  register_code(KC_SPC);
-}
-
-void unregister_space(void)
-{
-  unregister_code(KC_SPC);
-}
-
-enum key_state sym_spc_state = RELEASED;
-uint16_t sym_spc_pressed_timer;
-
-bool process_record_user(uint16_t keycode, keyrecord_t *record)
-{
-  switch (keycode)
-  {
-  case SYM_SPC:
-    if (record->event.pressed)
-    {
-      sym_spc_pressed_timer = timer_read();
-      sym_spc_state = PRESSED;
-    }
-    else
-    {
-      if (sym_spc_state == HOLDEN)
-      {
-        unregister_space();
-      }
-      sym_spc_state = RELEASED;
-    }
-    break;
-  }
-  return true;
-}
-
-void matrix_scan_user(void)
-{
-  if (sym_spc_state == PRESSED && timer_elapsed(sym_spc_pressed_timer) > TAPPING_TERM)
-  {
-    register_space();
-    sym_spc_state = HOLDEN;
-  }
 }
 
 #ifdef OLED_ENABLE
