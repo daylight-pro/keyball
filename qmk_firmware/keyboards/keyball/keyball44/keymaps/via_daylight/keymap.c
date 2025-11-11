@@ -24,10 +24,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   // keymap for default (VIA)
   [0] = LAYOUT_universal(
-    KC_ESC   , KC_Q     , KC_W     , KC_E     , KC_R     , KC_T     ,                                        KC_Y     , KC_U     , KC_I     , KC_O     , KC_P     , KC_DEL   ,
-    KC_TAB   , KC_A     , KC_S     , KC_D     , KC_F     , KC_G     ,                                        KC_H     , KC_J     , KC_K     , KC_L     , KC_SCLN  , S(KC_7)  ,
-    KC_LSFT  , KC_Z     , KC_X     , KC_C     , KC_V     , KC_B     ,                                        KC_N     , KC_M     , KC_COMM  , KC_DOT   , KC_SLSH  , KC_INT1  ,
-              KC_LALT,KC_LGUI,LCTL_T(KC_LNG2)     ,LT(1,KC_SPC),LT(3,KC_LNG1),                  KC_BSPC,LT(2,KC_ENT), RCTL_T(KC_LNG2),     KC_RALT  , KC_PSCR
+    KC_ESC   , KC_Q     , KC_W     , KC_E     , KC_R     , KC_T     ,                                        KC_Y     , KC_U     , KC_I     , KC_O     , KC_P     , KC_MINS  ,
+    KC_TAB   , KC_A     , KC_S     , KC_D     , KC_F     , KC_G     ,                                        KC_H     , KC_J     , KC_K     , KC_L     , KC_SCLN  , KC_QUOT  ,
+    KC_LSFT  , KC_Z     , KC_X     , KC_C     , KC_V     , KC_B     ,                                        KC_N     , KC_M     , KC_COMM  , KC_DOT   , KC_SLSH  , MO(4)    ,
+              KC_LALT,KC_LGUI,LCTL_T(KC_LNG2)    ,LT(1,KC_SPC),MO(3),                                        KC_BSPC,LT(2,KC_ENT), KC_J,     KC_RALT  , KC_PSCR
   ),
 
   [1] = LAYOUT_universal(
@@ -53,19 +53,66 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 // clang-format on
 
-layer_state_t layer_state_set_user(layer_state_t state) {
-    // Auto enable scroll mode when the highest layer is 3
-    keyball_set_scroll_mode(get_highest_layer(state) == 3);
-    return state;
+layer_state_t layer_state_set_user(layer_state_t state)
+{
+  // Auto enable scroll mode when the highest layer is 3
+  keyball_set_scroll_mode(get_highest_layer(state) == 3);
+  return state;
+}
+
+void register_space(void)
+{
+  register_code(KC_SPC);
+}
+
+void unregister_space(void)
+{
+  unregister_code(KC_SPC);
+}
+
+enum key_state sym_spc_state = RELEASED;
+uint16_t sym_spc_pressed_timer;
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record)
+{
+  switch (keycode)
+  {
+  case SYM_SPC:
+    if (record->event.pressed)
+    {
+      sym_spc_pressed_timer = timer_read();
+      sym_spc_state = PRESSED;
+    }
+    else
+    {
+      if (sym_spc_state == HOLDEN)
+      {
+        unregister_space();
+      }
+      sym_spc_state = RELEASED;
+    }
+    break;
+  }
+  return true;
+}
+
+void matrix_scan_user(void)
+{
+  if (sym_spc_state == PRESSED && timer_elapsed(sym_spc_pressed_timer) > TAPPING_TERM)
+  {
+    register_space();
+    sym_spc_state = HOLDEN;
+  }
 }
 
 #ifdef OLED_ENABLE
 
-#    include "lib/oledkit/oledkit.h"
+#include "lib/oledkit/oledkit.h"
 
-void oledkit_render_info_user(void) {
-    keyball_oled_render_keyinfo();
-    keyball_oled_render_ballinfo();
-    keyball_oled_render_layerinfo();
+void oledkit_render_info_user(void)
+{
+  keyball_oled_render_keyinfo();
+  keyball_oled_render_ballinfo();
+  keyball_oled_render_layerinfo();
 }
 #endif
